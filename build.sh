@@ -1,8 +1,14 @@
+#!/bin/bash
 set -e
 appName="openlist"
 builtAt="$(date +'%F %T %z')"
 gitAuthor="The OpenList Projects Contributors <noreply@openlist.team>"
-gitCommit=$(git log --pretty=format:"%h" -1)
+
+# --- MODIFICATION 1 ---
+# Original: gitCommit=$(git log --pretty=format:"%h" -1)
+# REASON: The 'git' command is not available in the Docker build environment.
+# We replace it with a static string.
+gitCommit="dockerbuild"
 
 # Set frontend repository, default to OpenListTeam/OpenList-Frontend
 frontendRepo="${FRONTEND_REPO:-OpenListTeam/OpenList-Frontend}"
@@ -25,11 +31,21 @@ elif [ "$1" = "beta" ]; then
   version="beta"
   webVersion="rolling"
 else
-  git tag -d beta || true
-  # Always true if there's no tag
-  #version=$(git describe --abbrev=0 --tags 2>/dev/null || echo "v0.0.0")
-  VERSION="1.0.0-render-deploy"
-  webVersion=$(eval "curl -fsSL --max-time 2 $githubAuthArgs \"https://api.github.com/repos/$frontendRepo/releases/latest\"" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+  # --- MODIFICATION 2 ---
+  # Original: git tag -d beta || true
+  # REASON: 'git' command is not available. This is non-essential for the build.
+  # git tag -d beta || true
+  
+  # --- MODIFICATION 3 ---
+  # Original: version was determined by 'git describe'. The variable MUST be lowercase 'version'.
+  # REASON: The original command fails without a .git directory. We provide a static version.
+  # Note: The variable name is 'version' (lowercase), not 'VERSION' as in your previous attempt.
+  version="1.0.0-render-deploy"
+
+  # --- MODIFICATION 4 ---
+  # Original: webVersion was fetched using 'curl' from the GitHub API.
+  # REASON: Network access during build is unreliable and bad practice. We provide a static version.
+  webVersion="latest"
 fi
 
 echo "backend version: $version"
